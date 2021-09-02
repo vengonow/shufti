@@ -1,0 +1,92 @@
+		"""
+		If you run into error: 'ImportError: No module named requests'
+		Please run
+		- pip install requests
+		"""
+		"""
+		Python 2
+		import urllib2
+
+		Python 3
+		import urllib.request
+		urllib.request.urlopen(url).read()
+		"""
+		#import required libraries
+		import urllib2, base64, requests, json, hashlib
+		from random import randint
+
+		#Shufti Pro api base url
+		url = 'https://api.shuftipro.com/'
+
+		# Your Shufti Pro account Client ID
+		client_id	= '8e6dfd4d16754f42a534f4b058ba788c9fbf4afd0741e2708c2658f5ebf43ba7'
+
+		# Your Shufti Pro account Secret Key
+		secret_key = 'MyMynW7jek3e1x98sjnilKaipoA2LAuI'
+
+		verification_request = {
+				#your unique request reference
+				"reference"					 : 'ref-{}{}'.format(randint(1000, 9999), randint(1000, 9999)),
+				#URL where you will receive the webhooks from Shufti Pro
+				"callback_url"				 : 'https://yourdomain.com/profile/notifyCallback',
+				#end-user email
+				"email"							 : "johndoe@example.com",
+				#end-user country
+				"country"						 : "",
+				#URL where end-user will be redirected after verification completed
+				"redirect_url"					 : "https://xskqdo55xn0.typeform.com/to/bDZthHpn", 
+				#what kind of proofs will be provided to Shufti Pro for verification?
+				"verification_mode"		 : "video_only",
+				#allow end user to upload real-time or already	catured proofs
+				"allow_online" : "1",
+				#privacy policy screen will be shown to end-user
+				"show_privacy_policy" : "1",
+				#verification results screen will be shown to end-user
+				"show_results"				 : "1",
+				#consent screen will be shown to end-user
+				"show_consent"			 : "1",
+		}
+		#face onsite verification
+		verification_request['face'] = {}
+		#document onsite verification with OCR
+		verification_request['document'] = {
+				'name'							: "",
+				'dob'								: "",
+				'gender'						 : "",
+				'document_number'	: "",
+				'supported_types'		: ['id_card','passport']
+		}
+		#document two onsite verification with OCR
+		verification_request['document_two'] = {
+				'name'							: "",
+				'dob'								: "",
+				'document_number'	: "",
+				'expiry_date'					: "",
+				'supported_types'		: ['id_card','passport']
+		}
+		# calling Shufti Pro request API using python request
+		auth = '{}:{}'.format(client_id, secret_key)
+		b64Val = base64.b64encode(auth.encode()).decode()
+		response = requests.post(url,
+										headers={"Authorization": "Basic %s" % b64Val, "Content-Type": "application/json"},
+										data=json.dumps(verification_request))
+
+		# calculating signature for verification
+		calculated_signature = hashlib.sha256('{}{}'.format(response.content.decode(), secret_key).encode()).hexdigest()
+
+		# get Shufti Pro Signature
+		sp_signature = response.headers.get('Signature',"")
+
+		# Convert json string to json object
+		json_response = json.loads((response.content).decode())
+
+		# Get event returned
+		event_name = json_response['event']
+		print(json_response)
+		if event_name == 'request.pending':
+				if sp_signature == calculated_signature:
+						verification_url = json_response['verification_url']
+						print('Verification URL: {}'.format(verification_url))
+				else:
+						print('Invalid signature: {}'.format(response.content))
+
